@@ -182,11 +182,7 @@ public:
 		opcode({ 0, 1, 2, 3 }) {}
 
 	virtual action take_action(const board& before) {
-		// std::shuffle(opcode.begin(), opcode.end(), engine);
-		// for (int op : opcode) {
-		// 	board::reward reward = board(before).slide(op);
-		// 	if (reward != -1) return action::slide(op);
-		// }
+
 		board::reward max_reward = -1;
 		int max_op = -1;
 		for (int op : opcode) {
@@ -200,6 +196,46 @@ public:
 		if(max_op != -1)
 		{
 			return action::slide(max_op);
+		}
+		return action();
+	}
+
+private:
+	std::array<int, 4> opcode;
+};
+
+class bottom_slider : public random_agent {
+public:
+	bottom_slider(const std::string& args = "") : random_agent("name=slide role=slider " + args),
+		opcode({ 0, 1, 2, 3 }) {}
+
+	virtual action take_action(const board& before) {
+
+		board::reward max_reward = -1;
+		int max_op = -1;
+		
+
+		for(int i = 0; i <= 2; i++)
+		{
+			int op = i+1;
+			board::reward reward = board(before).slide(op);
+			if(reward > max_reward)
+			{
+				max_op = op;
+				max_reward = reward;
+			}
+
+		}
+		if(max_op != -1)
+		{
+			
+			return action::slide(max_op);
+		}
+
+		board::reward reward = board(before).slide(0);
+		if(reward != -1)
+		{
+			return action::slide(0);
 		}
 		return action();
 	}

@@ -61,7 +61,8 @@ int main(int argc, const char* argv[]) {
 		if (stats.is_finished()) stats.summary();
 	}
 
-	greedy_slider slide(slide_args);
+	// greedy_slider slide(slide_args);
+	bottom_slider slide(slide_args);
 	random_placer place(place_args);
 
 	while (!stats.is_finished()) {
