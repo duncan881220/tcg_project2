@@ -73,8 +73,8 @@ protected:
 class weight_agent : public agent {
 public:
 	weight_agent(const std::string& args = "") : agent(args), alpha(0) {
-		if (meta.find("init") != meta.end())
-			init_weights(meta["init"]);
+		// if (meta.find("init") != meta.end())
+		// 	init_weights(meta["init"]);
 		if (meta.find("load") != meta.end())
 			load_weights(meta["load"]);
 		if (meta.find("alpha") != meta.end())
@@ -114,6 +114,107 @@ protected:
 protected:
 	std::vector<weight> net;
 	float alpha;
+};
+
+class TD_slider : public weight_agent
+{
+public:
+	TD_slider(const std::string& args = "") : weight_agent("name=TD role=slider" + args),
+		opcode({0, 1, 2, 3})
+		{
+			state_record.reserve(20000000);
+			if (meta.find("init") != meta.end())
+				init_weights(meta["init"]);
+
+		}
+	virtual void init_weights(const std::string& info) 
+	{
+        net.emplace_back(weight({0, 1, 2, 3, 4, 5}));
+        net.emplace_back(weight({4, 5, 6, 7, 8, 9}));
+        net.emplace_back(weight({0, 1, 2, 4, 5, 6}));
+        net.emplace_back(weight({4, 5, 6, 8, 9, 10}));
+        std::cout<<"initial weights"<<std::endl;
+    }
+
+	virtual action take_action(const board& before)
+	{
+		std::vector<board> after_boards;
+		std::vector<board::reward> rewards;
+
+		int max_op = -1;
+		board::reward best_reward = INT_MIN;
+		board::reward best_slide_reward;
+		for(int op : opcode)
+		{
+			board::reward slide_reward;
+			board::reward estimate_value;
+			after_boards.emplace_back(board(before));
+			slide_reward =after_boards[op].slide(op);
+			if(slide_reward != -1)
+			{
+				estimate_value = estimate_board(after_boards[op]);
+				if(estimate_value + slide_reward > best_reward)
+				{
+					best_reward = estimate_value + slide_reward;
+					max_op = op;
+					best_slide_reward = slide_reward;
+				}
+			}
+		}
+		if(max_op != -1)
+		{
+			state board_state;
+			board_state.before = before;
+			board_state.after = after_boards[max_op];
+			board_state.op = max_op;
+			board_state.reward = best_slide_reward;
+			board_state.value = best_reward;
+			return action::slide(max_op);
+		}
+		return action();
+	}
+
+	void episode_update()
+	{
+		float reward_afterstate_sum = 0;
+		for(state_record.pop_back(); state_record.size(); state_record.pop_back())
+		{
+			state& board_act = state_record.back();
+			float diff = reward_afterstate_sum - (board_act.value - board_act.reward); // after is B, value - reward = V(B)
+			reward_afterstate_sum = board_act.reward + weight_update(board_act.after, alpha * diff);
+		}
+	}
+
+	float estimate_board(const board& b) const 
+	{
+		float value = 0;
+		for (auto& w : net)
+		{
+            value += w.estimate_value(b);
+        }
+        return value;
+	}
+
+	float weight_update(const board& b, float diff)
+	{
+		float delta = diff / net.size();
+		float value = 0;
+		for (auto& patn : net)
+		{
+			value += patn.update(b, delta);
+		}
+		return value;
+	}
+
+private:
+	struct state
+	{
+		board before, after;
+		int op;
+		board::reward reward, value;
+	};
+	std::vector<state> state_record;
+	std::array<int, 4> opcode;
 };
 
 /**
