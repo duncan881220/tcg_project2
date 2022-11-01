@@ -18,15 +18,15 @@ public:
 
 public:
 	weight() {}
-	weight(size_t len) : value(len) {}
-	weight(weight&& f) : value(std::move(f.value)) {}
-	weight(const weight& f) = default;
+	// weight(size_t len) : value(len) {}
+	// weight(weight&& f) : value(std::move(f.value)) {}
+	// weight(const weight& f) = default;
 	weight(const std::vector<int> &patn) : pattern(patn)
 	{
 		// 1*2^(size*2^2) = 2^(size*4) = 16^size
 		size_t value_size = 1 << (patn.size() << 2);
 		value = std::vector<type>(value_size, 0);
-		for(int iso_type; iso_type <= 7 ; iso_type++)
+		for(int iso_type = 0; iso_type <= 7 ; iso_type++)
 		{
 			std::vector<int> iso_patn;
 			for(int position : pattern)
@@ -62,6 +62,7 @@ public:
 
 	float update(const board &b, float delta)
 	{
+		// std::cout<<"iso_size "<<isomorphism.size()<<" ";
 		float sum = 0;
 		for(auto &iso_patn : isomorphism )
 		{

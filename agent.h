@@ -15,6 +15,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <fstream>
+#include <climits>
 #include "board.h"
 #include "action.h"
 #include "weight.h"
@@ -75,8 +76,8 @@ public:
 	weight_agent(const std::string& args = "") : agent(args), alpha(0) {
 		// if (meta.find("init") != meta.end())
 		// 	init_weights(meta["init"]);
-		if (meta.find("load") != meta.end())
-			load_weights(meta["load"]);
+		// if (meta.find("load") != meta.end())
+		// 	load_weights(meta["load"]);
 		if (meta.find("alpha") != meta.end())
 			alpha = float(meta["alpha"]);
 	}
@@ -86,13 +87,13 @@ public:
 	}
 
 protected:
-	virtual void init_weights(const std::string& info) {
-		std::string res = info; // comma-separated sizes, e.g., "65536,65536"
-		for (char& ch : res)
-			if (!std::isdigit(ch)) ch = ' ';
-		std::stringstream in(res);
-		for (size_t size; in >> size; net.emplace_back(size));
-	}
+	// virtual void init_weights(const std::string& info) {
+	// 	std::string res = info; // comma-separated sizes, e.g., "65536,65536"
+	// 	for (char& ch : res)
+	// 		if (!std::isdigit(ch)) ch = ' ';
+	// 	std::stringstream in(res);
+	// 	for (size_t size; in >> size; net.emplace_back(size));
+	// }
 	virtual void load_weights(const std::string& path) {
 		std::ifstream in(path, std::ios::in | std::ios::binary);
 		if (!in.is_open()) std::exit(-1);
@@ -122,9 +123,17 @@ public:
 	TD_slider(const std::string& args = "") : weight_agent("name=TD role=slider" + args),
 		opcode({0, 1, 2, 3})
 		{
+			std::cout<<"args:"<<args<<std::endl;
 			state_record.reserve(20000000);
-			if (meta.find("init") != meta.end())
+				
+			if (meta.find("init") != meta.end()) 
 				init_weights(meta["init"]);
+        	if (meta.find("load") != meta.end()){
+            	init_weights(meta["init"]);
+            	load_weights(meta["load"]);
+        	}
+   		
+			
 
 		}
 	virtual void init_weights(const std::string& info) 
@@ -169,8 +178,11 @@ public:
 			board_state.op = max_op;
 			board_state.reward = best_slide_reward;
 			board_state.value = best_reward;
+
+			state_record.emplace_back(board_state);
 			return action::slide(max_op);
 		}
+		state_record.emplace_back(state());
 		return action();
 	}
 
@@ -183,6 +195,7 @@ public:
 			float diff = reward_afterstate_sum - (board_act.value - board_act.reward); // after is B, value - reward = V(B)
 			reward_afterstate_sum = board_act.reward + weight_update(board_act.after, alpha * diff);
 		}
+		state_record.clear();
 	}
 
 	float estimate_board(const board& b) const 

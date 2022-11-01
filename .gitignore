@@ -2,3 +2,8 @@
 .vscode
 stats.txt
 *.pdf
+*.tar.gz
+weight.bin
+*.bin
+*.log
+stats.txt
